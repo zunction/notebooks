@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 import time
 
-
-
 def initializestates(v, p):
     """
     Initializes a v by 1 array of initial states
@@ -13,7 +11,7 @@ def initializestates(v, p):
     - p: (probability) probability of getting a 1.
     """
     initialState = np.random.binomial(1, p, v)
-    initialState = initialState.reshape(v,1)
+    initialState = initialState.reshape(1, v)
     return initialState
 
 
@@ -25,24 +23,23 @@ def initializeW(v):
     Input:
     - v: (int) number of neurons in the system.
     """
-    W = np.random.normal(0, 1, (v,v))
-    W = 0.5 * (W + np.transpose(W))
-    W = W - np.diag(W)
-
+    W = np.random.normal(0, 1, (v, v))
+    W = np.triu(W, 1)+np.triu(W, 1).T
     # To save and load W matrix
     np.save('W.dat', W)
     # W = np.load('W.dat')
-    print ('Initialized W matrix: ', W)
+    print ('Initialized W matrix: \n', W)
     return W
+
 
 def initializeb(v):
     """
-    Initializes a v by 1 array of values. For now we can think of it
-    some form of bias in th system.
+    Initializes a 1 by v array of values. For now we can think of it
+    some form of bias in the system.
     Input:
     - v: (int) number of neurons in the system.
     """
-    b = np.zeros((v,1))
+    b = np.zeros((1,v))
     # W = np.random.normal(0, 1, (v,v))
     # W = 0.5 * (W + np.transpose(W))
     # W = W - np.diag(W)
@@ -52,7 +49,6 @@ def initializeb(v):
     # W = np.load('W.dat')
     print ('Initialized bias: ', b)
     return b
-
 
 def sigmoid(x):
     """
@@ -69,81 +65,41 @@ def single_unit_update(initialState, W, b, v):
     Input:
     - initialState: a numpy array of binary values denoting the initial state of the nodes.
     - W: a 2d numpy array of values that the prior distribution is based from.
+    - b: a (1, v) numpy array of bias
     - v: (int) the state of the vertex to be updated.
     """
     stateSize = initialState.shape
     newState = np.zeros(stateSize) + initialState
-#     Here we see that to update a single vertex state we only use the weights Wij for i not
-#     equal to j and hence the reason to set the diagonals to be zero earlier. But since
-#     we did not we have to kill off the diagonals of W here.
-#     prob = sigmoid((W - (W * np.eye(stateSize))).dot(initialState))
-    prob = sigmoid(W.dot(initialState) + b)
-    newState[v] = np.random.binomial(1, prob[v], 1)
-    return newState, newState[v]
+    prob = sigmoid(initialState.dot(W) + b)
+    newState[0, v] = np.random.binomial(1, prob[0, v], 1)
+    return newState, newState[0, v]
 
-
-# def gibbs_sample(initialState, W, b):
-#     """
-#     Returns the new state of the network after updating all v units systematically, given an initialized state
-#     of the network and weight matrix W.
-#     Input:
-#     - initialState: a numpy array of binary values denoting the initial state of the nodes.
-#     - W: a 2d numpy array.
-#     """
-# #     print ('initialState:', initialState)
-#     stateSize = initialState.shape
-#     newState = np.zeros(stateSize)
-#     for i in range(stateSize[0]):
-# #         print ('Changing the state for unit %d...'% i)
-#         initialState, vertexState = single_unit_update(initialState, W, b, i)
-# #         print ('Old unit state is %d, new unit state is %d'% (initialState[i], unitState))
-#         newState[i] = vertexState
-# #     print ('newState:', newState)
-#     return newState
-#
-#
-# def multi_gibbs_sample(initialState, W, b, n):
-#     """
-#     Performs Gibbs sampling n times with a given initial state and weight matrix W
-#     and stores each sample as a row.
-#     Input:
-#     - initialState: a numpy array of binary values denoting the initial state of the nodes.
-#     - W: a 2d numpy array.
-#     - n: (int) number of samples to be drawn.
-#     """
-#     stateSize = initialState.shape[0]
-#     sample = np.zeros((n, stateSize))
-#     for i in range(n):
-#         sample[i, :] = gibbs_sample(initialState, W)
-#     return sample
 
 def rand_gibbs_sample(initialState, W, b, n):
     """
-    Does a random scan Gibbs sampling n times with a given initial state and weight matrix W.
+    Does a random scan Gibbs sampling n times with a given initial state, weight matrix W and bias b.
+    Input:
     - initialState: a numpy array of binary values denoting the initial state of the nodes.
     - W: a 2d numpy array.
+    - b: a (1, v) numpy array of bias
     - n: (int) number of samples to be generated.
     """
-#     v = W.shape[0]
-#     sample = np.zeros((n, initialState.shape[0]))
     for i in range(n):
         s = np.random.randint(0, v)
         initialState, vertexState = single_unit_update(initialState, W, b, s)
-#         sample[i, :] = gibbs_sample(initialState, W)
     return initialState
 
 
-def burnin(initialState, W, b, t):
+    def burnin(initialState, W, b):
     """
-    Burn-in time for Gibbs sampling.
+    Performs burn in of 10000 x v iterations.
     Input:
-    - initialState: (numpy array) v by 1 array of initialState.
-    - v: (int) number of neurons in the system.
-    - t: (time/iterations) As a figure of rule, we use t = 10000 multiplied
-    by the number of neurons.
+    - initialState: a numpy array of binary values denoting the initial state of the nodes.
+    - W: a 2d numpy array.
+    - b: a (1, v) numpy array of bias
     """
-    v = initialState.shape[0]
-    burnin_state = rand_gibbs_sample(initialState, W, b, t * v)
+    v = W.shape[0]
+    burnin_state = rand_gibbs_sample(initialState, W, b, 10000 * v)
     print ('Burn-in state: ', burnin_state)
     return burnin_state
 
@@ -152,6 +108,7 @@ def mixin_gibbs_sample(initialState, W, b, n, m, savesamples = 'True'):
     """
     Does a random scan Gibbs sampling n * m times with a given initial state and weight matrix W and
     stores a sample every m iterations.
+    Input:
     - initialState: a numpy array of binary values denoting the initial state of the nodes.
     - W: a 2d numpy array.
     - n: (int) number of samples to be drawn.
@@ -161,21 +118,35 @@ def mixin_gibbs_sample(initialState, W, b, n, m, savesamples = 'True'):
     tic = time.time()
 
     v = W.shape[0]
-    sample = np.zeros((n, initialState.shape[0]))
+    sample = np.zeros((n, initialState.shape[1]))
     for i in range(n):
         initialState = rand_gibbs_sample(initialState, W, b, m)
-        sample[i, :] = initialState.reshape(v,)
+        sample[i] = initialState
     if savesamples == "True":
-        np.save('sample.dat', sample)
-        print ('Samples are saved as "sample.dat.npy"')
+        np.save('gibbs-sample.dat', sample)
+        print ('Samples are saved as "gibbs-sample.dat.npy"')
     elif savesamples == "False":
-        print ('Samples were not saved. Run np.save("sample.dat", sample) to save them. ')
+        print ('Samples were not saved. Run np.save("gibbs-sample.dat", sample) to save them. ')
     else:
         raise ValueError("savesamples must be 'True' or 'False'")
 
     toc = time.time()
     print ('Time taken to create %d samples is %f minutes' % (n, (toc - tic)/60))
     return sample
+
+def makesamples(initialState, W, b, n, m, savesamples = 'True'):
+    """
+    Make samples.
+    Input:
+    - initialState: a numpy array of binary values denoting the initial state of the nodes.
+    - W: a 2d numpy array.
+    - n: (int) number of samples to be drawn.
+    - m: (int) number of iterations before a sample is drawn.
+    - savedate: (bool) save samples as 'samples.dat.npy' if True and does not save if false.
+    """
+    b = burnin(initialState, W, b)
+    samples = mixin_gibbs_sample(b, W, b, n, m, savesamples)
+    return samples
 
 
 if __name__ == "__main__":
@@ -185,5 +156,4 @@ if __name__ == "__main__":
     initialState = initializestates(v, p)
     W = initializeW(v)
     b = initializeb(v)
-    burnin_state = burnin(initialState, W, b, t)
-    sample = mixin_gibbs_sample(burnin_state, W, b, 50000, 100)
+    makesamples(initialState, W, b, 50000, 100)
