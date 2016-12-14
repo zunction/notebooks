@@ -90,7 +90,7 @@ def rand_gibbs_sample(initialState, W, b, n):
     return initialState
 
 
-    def burnin(initialState, W, b):
+def burnin(initialState, W, b):
     """
     Performs burn in of 10000 x v iterations.
     Input:
