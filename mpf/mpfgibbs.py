@@ -23,8 +23,11 @@ def initializeW(v):
     Input:
     - v: (int) number of neurons in the system.
     """
-    W = np.random.normal(0, 1, (v, v))
-    W = np.triu(W, 1)+np.triu(W, 1).T
+    # W = np.random.normal(0, 1, (v, v))
+    # W = np.triu(W, 1)+np.triu(W, 1).T
+    U = np.random.rand(v, v)
+    W = 0.5 * (U + U.T)
+    np.fill_diagonal(W, 0)
     # To save and load W matrix
     np.save('W.dat', W)
     # W = np.load('W.dat')
