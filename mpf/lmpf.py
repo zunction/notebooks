@@ -125,7 +125,7 @@ def sgd(learning_rate = 0.01, n_epochs = 1000, dataset = 'gibbs-sample.dat.npy',
 
 
 if __name__ == "__main__":
-    # W_learnt, b_learnt = sgd(learning_rate = 0.01, n_epochs = 1000, \
+    # W_learnt, b_learnt = sgd(learning_rate = 0.01, n_epochs = 100, \
     # dataset = 'DataSync51.dat.npy', original = 'WSync51.dat.npy', batch_size = 10)
     W_learnt, b_learnt = sgd(learning_rate = 0.01, n_epochs = 1000, \
     dataset = 'gibbs-sample.dat.npy', original = 'W.dat.npy', batch_size = 10)
